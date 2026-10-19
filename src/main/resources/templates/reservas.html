@@ -9,10 +9,106 @@
           rel="stylesheet">
 </head>
 <body class="bg-light">
-<div class="container py-5">
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container">
+        <span class="navbar-brand fw-bold">Hotel Los Andes</span>
+        <a th:href="@{/inicio}" class="btn btn-outline-light btn-sm">Volver al inicio</a>
+    </div>
+</nav>
+
+<main class="container py-5">
     <h2 class="fw-bold">Reservas</h2>
-    <p class="text-secondary">Sección de gestión de reservas del hotel.</p>
-    <a th:href="@{/inicio}" class="btn btn-primary">Volver al inicio</a>
-</div>
+    <p class="text-secondary">Consulta disponibilidad y registra reservas.</p>
+    <div th:if="${mensaje}" class="alert alert-success" th:text="${mensaje}"></div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold">Consultar disponibilidad</h5>
+            <form th:action="@{/reservas}" method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="fechaEntrada" class="form-label">Fecha de entrada</label>
+                    <input id="fechaEntrada" name="fechaEntrada" type="date" class="form-control"
+                           th:min="${fechaMinima}" th:value="${fechaEntrada}" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="fechaSalida" class="form-label">Fecha de salida</label>
+                    <input id="fechaSalida" name="fechaSalida" type="date" class="form-control"
+                           th:min="${fechaMinima}" th:value="${fechaSalida}" required>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">Consultar</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="card border-0 shadow-sm mb-4" th:if="${habitacionesDisponibles != null}">
+        <div class="card-body p-4">
+            <h5 class="fw-bold">Registrar reserva</h5>
+            <p class="text-secondary" th:if="${#lists.isEmpty(habitacionesDisponibles)}">
+                No hay habitaciones disponibles en esas fechas.
+            </p>
+            <form th:if="${!#lists.isEmpty(habitacionesDisponibles)}"
+                  th:action="@{/reservas/guardar}" method="post" class="row g-3">
+                <input type="hidden" name="fechaEntrada" th:value="${fechaEntrada}">
+                <input type="hidden" name="fechaSalida" th:value="${fechaSalida}">
+                <div class="col-md-6">
+                    <label for="clienteId" class="form-label">Cliente</label>
+                    <select id="clienteId" name="clienteId" class="form-select" required>
+                        <option value="">Selecciona un cliente</option>
+                        <option th:each="cliente : ${clientes}" th:value="${cliente.idCliente}"
+                                th:text="${cliente.nombre + ' (' + cliente.documento + ')'}"></option>
+                    </select>
+                    <small class="text-danger" th:if="${#lists.isEmpty(clientes)}">
+                        Registra un cliente antes de crear una reserva.
+                    </small>
+                </div>
+                <div class="col-md-6">
+                    <label for="habitacionId" class="form-label">Habitación disponible</label>
+                    <select id="habitacionId" name="habitacionId" class="form-select" required>
+                        <option value="">Selecciona una habitación</option>
+                        <option th:each="habitacion : ${habitacionesDisponibles}"
+                                th:value="${habitacion.idHabitacion}"
+                                th:text="${habitacion.numero + ' - ' + habitacion.tipoHabitacion.nombre}"></option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-success"
+                            th:disabled="${#lists.isEmpty(clientes)}">Confirmar reserva</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3">Reservas registradas</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-primary">
+                    <tr>
+                        <th>ID</th><th>Cliente</th><th>Habitación</th>
+                        <th>Entrada</th><th>Salida</th><th>Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="reserva : ${reservas}">
+                        <td th:text="${reserva.idReserva}"></td>
+                        <td th:text="${reserva.cliente.nombre}"></td>
+                        <td th:text="${reserva.habitacion.numero}"></td>
+                        <td th:text="${reserva.fechaEntrada}"></td>
+                        <td th:text="${reserva.fechaSalida}"></td>
+                        <td><span class="badge bg-primary" th:text="${reserva.estado}"></span></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(reservas)}">
+                        <td colspan="6" class="text-center text-secondary py-4">Aún no hay reservas.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
 </body>
 </html>

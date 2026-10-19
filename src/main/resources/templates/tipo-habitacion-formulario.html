@@ -26,6 +26,7 @@
 
             <h2 class="fw-bold mb-4"
                 th:text="${accion} + ' tipo de habitación'"></h2>
+            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
             <form th:action="@{/tipos-habitacion/guardar}"
                   th:object="${tipo}" method="post">

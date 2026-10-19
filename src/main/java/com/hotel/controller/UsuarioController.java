@@ -84,22 +84,6 @@ public class UsuarioController {
         return "mantenimientos";
     }
 
-    @GetMapping("/reservas")
-    public String reservas(HttpSession session) {
-        Usuario usuario = (Usuario) session.getAttribute("usuario");
-
-        if (usuario == null) {
-            return "redirect:/";
-        }
-
-        if (!"ADMIN".equals(usuario.getRol())
-                && !"RECEPCIONISTA".equals(usuario.getRol())) {
-            return "redirect:/inicio?errorPermiso";
-        }
-
-        return "reservas";
-    }
-
     @GetMapping("/logout")
     public String cerrarSesion(HttpSession session) {
         session.invalidate();

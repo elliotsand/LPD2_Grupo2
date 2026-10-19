@@ -4,6 +4,7 @@ import com.hotel.modelo.Cliente;
 import com.hotel.modelo.Usuario;
 import com.hotel.service.ClienteService;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -47,13 +48,21 @@ public class ClienteController {
     @PostMapping("/guardar")
     public String guardar(
             @ModelAttribute Cliente cliente,
-            HttpSession session) {
+            HttpSession session,
+            Model model) {
 
         if (!esAdministrador(session)) {
             return "redirect:/inicio?errorPermiso";
         }
 
-        clienteService.guardar(cliente);
+        try {
+            clienteService.guardar(cliente);
+        } catch (DataIntegrityViolationException e) {
+            model.addAttribute("cliente", cliente);
+            model.addAttribute("accion", cliente.getIdCliente() == null ? "Registrar" : "Editar");
+            model.addAttribute("error", "Ese documento ya está registrado. Verifica el número e intenta de nuevo.");
+            return "cliente-formulario";
+        }
         return "redirect:/clientes";
     }
 

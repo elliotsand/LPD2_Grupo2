@@ -55,13 +55,29 @@ public class TipoHabitacionController {
     @PostMapping("/guardar")
     public String guardar(
             @ModelAttribute TipoHabitacion tipo,
-            HttpSession session) {
+            HttpSession session,
+            Model model) {
 
         if (!esAdministrador(session)) {
             return "redirect:/inicio?errorPermiso";
         }
 
-        tipoHabitacionService.guardar(tipo);
+        if (tipo.getNombre() == null || tipo.getNombre().isBlank()
+                || tipo.getPrecio() == null || tipo.getPrecio() <= 0) {
+            model.addAttribute("tipo", tipo);
+            model.addAttribute("accion", tipo.getIdTipoHabitacion() == null ? "Registrar" : "Editar");
+            model.addAttribute("error", "Ingresa un nombre y un precio mayor que cero.");
+            return "tipo-habitacion-formulario";
+        }
+
+        try {
+            tipoHabitacionService.guardar(tipo);
+        } catch (DataIntegrityViolationException e) {
+            model.addAttribute("tipo", tipo);
+            model.addAttribute("accion", tipo.getIdTipoHabitacion() == null ? "Registrar" : "Editar");
+            model.addAttribute("error", "No se pudo guardar el tipo de habitación. Revisa los datos e intenta de nuevo.");
+            return "tipo-habitacion-formulario";
+        }
 
         return "redirect:/tipos-habitacion";
     }
