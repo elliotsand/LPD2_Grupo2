@@ -28,6 +28,13 @@ public class TipoHabitacionService {
         return tipoHabitacionRepository.save(tipoHabitacion);
     }
 
+    public boolean nombreDuplicado(TipoHabitacion tipo) {
+        String nombre = tipo.getNombre().trim();
+        return tipo.getIdTipoHabitacion() == null
+                ? tipoHabitacionRepository.existsByNombreIgnoreCase(nombre)
+                : tipoHabitacionRepository.existsByNombreIgnoreCaseAndIdTipoHabitacionNot(nombre, tipo.getIdTipoHabitacion());
+    }
+
     public void eliminar(Integer id) {
         tipoHabitacionRepository.deleteById(id);
     }

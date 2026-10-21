@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reportes | Hotel Los Andes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container">
+        <span class="navbar-brand fw-bold">Hotel Los Andes</span>
+        <a th:href="@{/inicio}" class="btn btn-outline-light btn-sm">Volver al inicio</a>
+    </div>
+</nav>
+
+<main class="container py-5">
+    <h2 class="fw-bold">Reportes (JasperReports · PDF)</h2>
+    <p class="text-secondary">Los reportes se abren en una pestaña nueva y se pueden descargar o imprimir.</p>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="fw-bold">Reporte 1: Reservas por período</h5>
+                    <p class="text-secondary small">Reservas con cliente, habitación, fechas, noches, estado e importe estimado.</p>
+                    <form th:action="@{/reportes/reservas}" method="get" target="_blank" class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small" for="desde">Entrada desde</label>
+                            <input id="desde" type="date" name="desde" class="form-control form-control-sm" th:value="${desde}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small" for="hasta">Entrada hasta</label>
+                            <input id="hasta" type="date" name="hasta" class="form-control form-control-sm" th:value="${hasta}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small" for="estado">Estado</label>
+                            <select id="estado" name="estado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option th:each="e : ${estados}" th:value="${e}" th:text="${e}"></option>
+                            </select>
+                        </div>
+                        <div class="col-12"><button class="btn btn-danger btn-sm">Generar PDF</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="fw-bold">Reporte 2: Habitaciones</h5>
+                    <p class="text-secondary small">Número, piso, tipo, tarifa, estado actual y cantidad de reservas de cada habitación.</p>
+                    <a th:href="@{/reportes/habitaciones}" target="_blank" class="btn btn-danger btn-sm align-self-start">Generar PDF</a>
+                    <hr>
+                    <h6 class="fw-bold">Adicional: Proyección de ingresos</h6>
+                    <a th:href="@{/reportes/ingresos}" target="_blank" class="btn btn-outline-danger btn-sm align-self-start">Generar PDF</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

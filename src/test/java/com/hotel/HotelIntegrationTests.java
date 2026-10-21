@@ -9,6 +9,7 @@ import com.hotel.repository.ClienteRepository;
 import com.hotel.repository.HabitacionRepository;
 import com.hotel.repository.ReservaRepository;
 import com.hotel.repository.TipoHabitacionRepository;
+import com.hotel.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,7 @@ class HotelIntegrationTests {
     @Autowired private HabitacionRepository habitacionRepository;
     @Autowired private ReservaRepository reservaRepository;
     @Autowired private TipoHabitacionRepository tipoHabitacionRepository;
+    @Autowired private UsuarioRepository usuarioRepository;
 
     private Cliente cliente;
     private Habitacion habitacion;
@@ -147,6 +149,92 @@ class HotelIntegrationTests {
 
         mvc.perform(get("/reportes/reservas").session(sesion("RECEPCIONISTA")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void sinSesionRedirigeAlLogin() throws Exception {
+        mvc.perform(get("/reservas"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"));
+    }
+
+    @Test
+    void loginCifraLaContrasenaYGuardaElUsuarioEnSesion() throws Exception {
+        usuarioRepository.deleteAll();
+        usuarioRepository.save(new Usuario("Recepción", "recepcion", "123456", "RECEPCIONISTA"));
+
+        mvc.perform(post("/login").param("username", "recepcion").param("password", "mala"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("error", containsString("incorrectos")));
+
+        mvc.perform(post("/login").param("username", "recepcion").param("password", "123456"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/inicio"))
+                .andExpect(request().sessionAttribute("usuario", org.hamcrest.Matchers.notNullValue()));
+
+        String guardada = usuarioRepository.findByUsername("recepcion").orElseThrow().getPassword();
+        assertTrue(guardada.startsWith("$2"), "La contraseña debe quedar cifrada con BCrypt");
+
+        mvc.perform(post("/login").param("username", "recepcion").param("password", "123456"))
+                .andExpect(redirectedUrl("/inicio"));
+    }
+
+    @Test
+    void consultasDeDisponibilidadYReservasFuncionanParaRecepcion() throws Exception {
+        LocalDate entrada = LocalDate.now().plusDays(5);
+        reservaRepository.save(new Reserva(entrada, entrada.plusDays(2), "CONFIRMADA", cliente, habitacion));
+
+        mvc.perform(get("/consultas/disponibilidad").session(sesion("RECEPCIONISTA"))
+                        .param("fechaEntrada", entrada.toString())
+                        .param("fechaSalida", entrada.plusDays(1).toString()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("consulta-disponibilidad"))
+                .andExpect(model().attribute("disponibles", org.hamcrest.Matchers.empty()));
+
+        mvc.perform(get("/consultas/reservas").session(sesion("RECEPCIONISTA"))
+                        .param("cliente", "ana"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("consulta-reservas"))
+                .andExpect(model().attribute("reservas", org.hamcrest.Matchers.hasSize(1)));
+    }
+
+    @Test
+    void cancelarReservaLiberaLaHabitacion() throws Exception {
+        LocalDate entrada = LocalDate.now().plusDays(2);
+        mvc.perform(post("/reservas/guardar").session(sesion("ADMIN"))
+                .param("fechaEntrada", entrada.toString())
+                .param("fechaSalida", entrada.plusDays(2).toString())
+                .param("clienteId", cliente.getIdCliente().toString())
+                .param("habitacionId", habitacion.getIdHabitacion().toString()));
+        Reserva reserva = reservaRepository.findAll().get(0);
+
+        mvc.perform(post("/reservas/" + reserva.getIdReserva() + "/cancelar").session(sesion("RECEPCIONISTA")))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("mensaje", containsString("cancelada")));
+
+        assertEquals("CANCELADA", reservaRepository.findById(reserva.getIdReserva()).orElseThrow().getEstado());
+        assertEquals("DISPONIBLE", habitacionRepository.findById(habitacion.getIdHabitacion()).orElseThrow().getEstado());
+    }
+
+    @Test
+    void reporteDeHabitacionesGeneraPdf() throws Exception {
+        byte[] pdf = mvc.perform(get("/reportes/habitaciones").session(sesion("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andReturn().getResponse().getContentAsByteArray();
+        assertTrue(new String(pdf, 0, 4, StandardCharsets.US_ASCII).equals("%PDF"));
+    }
+
+    @Test
+    void rechazaDocumentoConFormatoInvalido() throws Exception {
+        mvc.perform(post("/clientes/guardar").session(sesion("ADMIN"))
+                        .param("nombre", "Luis Rojas")
+                        .param("documento", "123")
+                        .param("telefono", "987654321")
+                        .param("correo", "luis@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("cliente-formulario"))
+                .andExpect(model().attribute("error", containsString("documento")));
     }
 
     private MockHttpSession sesion(String rol) {

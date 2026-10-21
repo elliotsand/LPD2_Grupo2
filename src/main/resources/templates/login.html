@@ -31,6 +31,13 @@
                  th:text="${error}">
             </div>
 
+            <div th:if="${param.expirada}" class="alert alert-warning" role="alert">
+                Tu sesión expiró por inactividad. Vuelve a iniciar sesión.
+            </div>
+            <div th:if="${param.salir}" class="alert alert-info" role="alert">
+                Cerraste sesión correctamente.
+            </div>
+
             <form th:action="@{/login}" method="post">
 
                 <div class="mb-3">
