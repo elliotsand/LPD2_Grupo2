@@ -214,7 +214,7 @@ public class ReporteService {
             x += columna.ancho();
         }
         design.setColumnHeader(headerBand);
-        design.getDetailSection().addBand(detailBand);
+         ((net.sf.jasperreports.engine.design.JRDesignSection) design.getDetailSection()).addBand(detailBand);
 
         JRDesignBand summaryBand = new JRDesignBand();
         summaryBand.setHeight(34);
