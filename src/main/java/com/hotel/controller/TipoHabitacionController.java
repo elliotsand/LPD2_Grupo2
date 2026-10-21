@@ -70,6 +70,13 @@ public class TipoHabitacionController {
             return "tipo-habitacion-formulario";
         }
 
+        if (tipoHabitacionService.nombreDuplicado(tipo)) {
+            model.addAttribute("tipo", tipo);
+            model.addAttribute("accion", tipo.getIdTipoHabitacion() == null ? "Registrar" : "Editar");
+            model.addAttribute("error", "Ya existe un tipo de habitación con ese nombre.");
+            return "tipo-habitacion-formulario";
+        }
+
         try {
             tipoHabitacionService.guardar(tipo);
         } catch (DataIntegrityViolationException e) {

@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class ReservaServiceTest {
@@ -63,7 +64,7 @@ class ReservaServiceTest {
         LocalDate entrada = LocalDate.now().plusDays(1);
         LocalDate salida = entrada.plusDays(2);
         when(clienteRepository.findById(1)).thenReturn(Optional.of(cliente));
-        when(habitacionRepository.findById(1)).thenReturn(Optional.of(habitacion));
+        when(habitacionRepository.bloquearPorId(1)).thenReturn(Optional.of(habitacion));
         when(reservaRepository.existeCruce(1, entrada, salida)).thenReturn(false);
         when(reservaRepository.save(any(Reserva.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -84,12 +85,58 @@ class ReservaServiceTest {
         LocalDate salida = entrada.plusDays(2);
         when(clienteRepository.findById(1)).thenReturn(Optional.of(
                 new Cliente("Ana Perez", "12345678", null, null)));
-        when(habitacionRepository.findById(1)).thenReturn(Optional.of(habitacion()));
+        when(habitacionRepository.bloquearPorId(1)).thenReturn(Optional.of(habitacion()));
         when(reservaRepository.existeCruce(1, entrada, salida)).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class,
                 () -> reservaService.registrar(entrada, salida, 1, 1));
         verify(reservaRepository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    void rechazaReservasDeMasDeTreintaNoches() {
+        LocalDate entrada = LocalDate.now().plusDays(1);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> reservaService.registrar(entrada, entrada.plusDays(31), 1, 1));
+        verify(reservaRepository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    void cancelarLiberaLaHabitacionSiNoTieneOtraReserva() {
+        Habitacion habitacion = habitacion();
+        habitacion.setEstado("RESERVADA");
+        Reserva reserva = new Reserva(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3),
+                "CONFIRMADA", new Cliente("Ana Perez", "12345678", null, null), habitacion);
+        reserva.setIdReserva(7);
+        when(reservaRepository.findById(7)).thenReturn(Optional.of(reserva));
+        when(reservaRepository.tieneOtraReservaVigente(eq(1), any(LocalDate.class), eq(7))).thenReturn(false);
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Reserva cancelada = reservaService.cancelar(7);
+
+        assertEquals("CANCELADA", cancelada.getEstado());
+        assertEquals("DISPONIBLE", habitacion.getEstado());
+        verify(habitacionRepository).save(habitacion);
+    }
+
+    @Test
+    void noPermiteCancelarUnaReservaYaFinalizada() {
+        Reserva reserva = new Reserva(LocalDate.now().minusDays(3), LocalDate.now().minusDays(1),
+                "FINALIZADA", new Cliente("Ana Perez", "12345678", null, null), habitacion());
+        when(reservaRepository.findById(8)).thenReturn(Optional.of(reserva));
+
+        assertThrows(IllegalArgumentException.class, () -> reservaService.cancelar(8));
+        verify(reservaRepository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    void calculaNochesEImporteDeLaReserva() {
+        Reserva reserva = new Reserva(LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 13),
+                "CONFIRMADA", null, habitacion());
+
+        assertEquals(3, reserva.getNoches());
+        assertEquals(360.0, reserva.getTotal(), 0.001);
     }
 
     private Habitacion habitacion() {

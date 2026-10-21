@@ -74,18 +74,32 @@ public class HabitacionController {
             return "redirect:/habitaciones";
         }
 
-        boolean numeroDuplicado = habitacionService.listar().stream()
-                .anyMatch(h ->
-                        h.getNumero().equalsIgnoreCase(habitacion.getNumero())
-                        && !h.getIdHabitacion().equals(habitacion.getIdHabitacion()));
+        String error = null;
+        if (habitacion.getNumero() == null || habitacion.getNumero().isBlank()) {
+            error = "Ingresa el número de la habitación.";
+        } else if (habitacion.getPiso() == null || habitacion.getPiso() < 1 || habitacion.getPiso() > 50) {
+            error = "El piso debe estar entre 1 y 50.";
+        } else if (!java.util.List.of("DISPONIBLE", "RESERVADA", "OCUPADA", "MANTENIMIENTO")
+                .contains(habitacion.getEstado())) {
+            error = "Selecciona un estado válido.";
+        } else {
+            habitacion.setNumero(habitacion.getNumero().trim());
+            boolean numeroDuplicado = habitacionService.listar().stream()
+                    .anyMatch(h ->
+                            h.getNumero().equalsIgnoreCase(habitacion.getNumero())
+                            && !h.getIdHabitacion().equals(habitacion.getIdHabitacion()));
+            if (numeroDuplicado) {
+                error = "Ya existe una habitación con ese número.";
+            }
+        }
 
-        if (numeroDuplicado) {
+        if (error != null) {
+            habitacion.setTipoHabitacion(tipo);
             model.addAttribute("habitacion", habitacion);
             model.addAttribute("tipos", tipoHabitacionService.listar());
             model.addAttribute("accion",
                     habitacion.getIdHabitacion() == null ? "Registrar" : "Editar");
-            model.addAttribute("error",
-                    "Ya existe una habitación con ese número.");
+            model.addAttribute("error", error);
             return "habitacion-formulario";
         }
 

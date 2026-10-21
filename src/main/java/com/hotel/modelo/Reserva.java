@@ -2,6 +2,7 @@ package com.hotel.modelo;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "reservas")
@@ -81,5 +82,24 @@ public class Reserva {
 
     public void setHabitacion(Habitacion habitacion) {
         this.habitacion = habitacion;
+    }
+
+    /** Número de noches de la reserva (no se guarda en la BD). */
+    @Transient
+    public long getNoches() {
+        if (fechaEntrada == null || fechaSalida == null) {
+            return 0;
+        }
+        return ChronoUnit.DAYS.between(fechaEntrada, fechaSalida);
+    }
+
+    /** Importe estimado: noches x tarifa del tipo de habitación. */
+    @Transient
+    public double getTotal() {
+        if (habitacion == null || habitacion.getTipoHabitacion() == null
+                || habitacion.getTipoHabitacion().getPrecio() == null) {
+            return 0;
+        }
+        return getNoches() * habitacion.getTipoHabitacion().getPrecio();
     }
 }

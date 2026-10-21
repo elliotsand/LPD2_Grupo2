@@ -55,6 +55,14 @@ public class ClienteController {
             return "redirect:/inicio?errorPermiso";
         }
 
+        String errorValidacion = clienteService.validar(cliente);
+        if (errorValidacion != null) {
+            model.addAttribute("cliente", cliente);
+            model.addAttribute("accion", cliente.getIdCliente() == null ? "Registrar" : "Editar");
+            model.addAttribute("error", errorValidacion);
+            return "cliente-formulario";
+        }
+
         try {
             clienteService.guardar(cliente);
         } catch (DataIntegrityViolationException e) {

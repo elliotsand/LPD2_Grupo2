@@ -16,7 +16,11 @@
 			<span class="navbar-brand fw-bold">Hotel Los Andes</span>
 
 			<div class="d-flex align-items-center gap-3">
-				<span class="text-white" th:text="${usuario.nombre}"></span>
+				<span class="text-white small">
+					<span th:text="${usuario.nombre}"></span>
+					(<span th:text="${usuario.rol}"></span>)
+					· ingreso <span th:text="${session.horaIngreso}"></span>
+				</span>
 
 				<a th:href="@{/logout}" class="btn btn-outline-light btn-sm">
 					Cerrar sesión
@@ -30,74 +34,95 @@
 		<div th:if="${errorPermiso}" class="alert alert-warning" th:text="${errorPermiso}">
 		</div>
 
-		<div class="card border-0 shadow-sm rounded-4">
-			<div class="card-body p-4 p-md-5">
+		<h2 class="fw-bold mb-1">
+			Bienvenido, <span th:text="${usuario.nombre}"></span>
+		</h2>
+		<p class="text-secondary mb-4">
+			Rol: <span class="badge bg-primary" th:text="${usuario.rol}"></span>
+			· La sesión se cierra automáticamente tras 20 minutos sin actividad.
+		</p>
 
-				<h2 class="fw-bold mb-2">
-					Bienvenido, <span th:text="${usuario.nombre}"></span>
-				</h2>
-
-				<p class="text-secondary">
-					Has iniciado sesión correctamente.
-				</p>
-
-				<hr>
-
-				<p class="mb-4">
-					<strong>Rol:</strong>
-					<span class="badge bg-primary" th:text="${usuario.rol}"></span>
-				</p>
-
-				<h5 class="mb-3">Panel principal</h5>
-
-				<div class="row g-3">
-
-					<!-- Mantenimientos: solo administrador -->
-					<div class="col-md-6" th:if="${esAdmin}">
-						<div class="card h-100 border-0 shadow-sm">
-							<div class="card-body">
-								<h5 class="fw-bold">Mantenimientos</h5>
-
-								<p class="text-secondary">
-									Administración de clientes y tipos de habitación.
-								</p>
-
-								<div class="d-flex flex-wrap gap-2">
-									<a th:href="@{/clientes}" class="btn btn-outline-primary btn-sm">
-										Gestionar clientes
-									</a>
-
-									<a th:href="@{/tipos-habitacion}" class="btn btn-outline-primary btn-sm">
-										Tipos de habitación
-									</a>
-									<a th:href="@{/habitaciones}" class="btn btn-outline-primary btn-sm">
-										Habitaciones
-									</a>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<!-- Reservas: administrador y recepcionista -->
-					<div class="col-md-6">
-						<div class="card h-100 border-0 shadow-sm">
-							<div class="card-body">
-								<h5 class="fw-bold">Reservas</h5>
-
-								<p class="text-secondary">
-									Registro y consulta de reservas del hotel.
-								</p>
-
-								<a th:href="@{/reservas}" class="btn btn-outline-primary">
-									Ingresar
-								</a>
-							</div>
-						</div>
-					</div>
-
-				</div>
-
+		<!-- Indicadores -->
+		<div class="row g-3 mb-4">
+			<div class="col-6 col-md-3">
+				<div class="card border-0 shadow-sm h-100"><div class="card-body">
+					<div class="text-secondary small">Clientes</div>
+					<div class="fs-3 fw-bold text-primary" th:text="${totalClientes}">0</div>
+				</div></div>
 			</div>
+			<div class="col-6 col-md-3">
+				<div class="card border-0 shadow-sm h-100"><div class="card-body">
+					<div class="text-secondary small">Habitaciones</div>
+					<div class="fs-3 fw-bold text-primary" th:text="${totalHabitaciones}">0</div>
+				</div></div>
+			</div>
+			<div class="col-6 col-md-3">
+				<div class="card border-0 shadow-sm h-100"><div class="card-body">
+					<div class="text-secondary small">Disponibles hoy</div>
+					<div class="fs-3 fw-bold text-success" th:text="${habitacionesDisponibles}">0</div>
+				</div></div>
+			</div>
+			<div class="col-6 col-md-3">
+				<div class="card border-0 shadow-sm h-100"><div class="card-body">
+					<div class="text-secondary small">Reservas vigentes</div>
+					<div class="fs-3 fw-bold text-warning" th:text="${reservasActivas}">0</div>
+				</div></div>
+			</div>
+		</div>
+
+		<div class="row g-3">
+
+			<!-- Mantenimientos: solo administrador -->
+			<div class="col-md-6" th:if="${esAdmin}">
+				<div class="card h-100 border-0 shadow-sm">
+					<div class="card-body">
+						<h5 class="fw-bold">Mantenimientos</h5>
+						<p class="text-secondary">Clientes, tipos de habitación y habitaciones.</p>
+						<div class="d-flex flex-wrap gap-2">
+							<a th:href="@{/clientes}" class="btn btn-outline-primary btn-sm">Clientes</a>
+							<a th:href="@{/tipos-habitacion}" class="btn btn-outline-primary btn-sm">Tipos de habitación</a>
+							<a th:href="@{/habitaciones}" class="btn btn-outline-primary btn-sm">Habitaciones</a>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Reservas: administrador y recepcionista -->
+			<div class="col-md-6">
+				<div class="card h-100 border-0 shadow-sm">
+					<div class="card-body">
+						<h5 class="fw-bold">Reservas</h5>
+						<p class="text-secondary">Registrar, cancelar y finalizar reservas.</p>
+						<a th:href="@{/reservas}" class="btn btn-primary btn-sm">Registrar reserva</a>
+					</div>
+				</div>
+			</div>
+
+			<!-- Consultas: administrador y recepcionista -->
+			<div class="col-md-6">
+				<div class="card h-100 border-0 shadow-sm">
+					<div class="card-body">
+						<h5 class="fw-bold">Consultas</h5>
+						<p class="text-secondary">Disponibilidad por fechas y reservas registradas.</p>
+						<div class="d-flex flex-wrap gap-2">
+							<a th:href="@{/consultas/disponibilidad}" class="btn btn-outline-primary btn-sm">Disponibilidad</a>
+							<a th:href="@{/consultas/reservas}" class="btn btn-outline-primary btn-sm">Reservas registradas</a>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Reportes: solo administrador -->
+			<div class="col-md-6" th:if="${esAdmin}">
+				<div class="card h-100 border-0 shadow-sm">
+					<div class="card-body">
+						<h5 class="fw-bold">Reportes PDF</h5>
+						<p class="text-secondary">Reservas por período y estado de habitaciones (JasperReports).</p>
+						<a th:href="@{/reportes}" class="btn btn-outline-danger btn-sm">Ver reportes</a>
+					</div>
+				</div>
+			</div>
+
 		</div>
 
 	</main>

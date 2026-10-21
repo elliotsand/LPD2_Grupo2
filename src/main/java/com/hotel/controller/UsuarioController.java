@@ -1,8 +1,11 @@
-
 package com.hotel.controller;
 
 import com.hotel.modelo.Usuario;
+import com.hotel.repository.ClienteRepository;
+import com.hotel.repository.HabitacionRepository;
+import com.hotel.repository.ReservaRepository;
 import com.hotel.service.UsuarioService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -10,13 +13,28 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
+
 @Controller
 public class UsuarioController {
 
-    private final UsuarioService usuarioService;
+    /** Minutos de inactividad antes de que expire la sesión. */
+    private static final int MINUTOS_SESION = 20;
 
-    public UsuarioController(UsuarioService usuarioService) {
+    private final UsuarioService usuarioService;
+    private final ClienteRepository clienteRepository;
+    private final HabitacionRepository habitacionRepository;
+    private final ReservaRepository reservaRepository;
+
+    public UsuarioController(UsuarioService usuarioService, ClienteRepository clienteRepository,
+                             HabitacionRepository habitacionRepository, ReservaRepository reservaRepository) {
         this.usuarioService = usuarioService;
+        this.clienteRepository = clienteRepository;
+        this.habitacionRepository = habitacionRepository;
+        this.reservaRepository = reservaRepository;
     }
 
     @GetMapping("/")
@@ -31,19 +49,26 @@ public class UsuarioController {
     public String login(
             @RequestParam String username,
             @RequestParam String password,
-            HttpSession session,
+            HttpServletRequest request,
             Model model) {
 
-        for (Usuario usuario : usuarioService.listar()) {
-            if (usuario.getUsername().equals(username)
-                    && usuario.getPassword().equals(password)) {
-                session.setAttribute("usuario", usuario);
-                return "redirect:/inicio";
-            }
+        Optional<Usuario> autenticado = usuarioService.autenticar(username, password);
+        if (autenticado.isEmpty()) {
+            model.addAttribute("error", "Usuario o contraseña incorrectos");
+            return "login";
         }
 
-        model.addAttribute("error", "Usuario o contraseña incorrectos");
-        return "login";
+        // Se descarta la sesión anterior para evitar la fijación de sesión
+        HttpSession anterior = request.getSession(false);
+        if (anterior != null) {
+            anterior.invalidate();
+        }
+        HttpSession session = request.getSession(true);
+        session.setMaxInactiveInterval(MINUTOS_SESION * 60);
+        session.setAttribute("usuario", autenticado.get());
+        session.setAttribute("horaIngreso",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+        return "redirect:/inicio";
     }
 
     @GetMapping("/inicio")
@@ -60,6 +85,10 @@ public class UsuarioController {
 
         model.addAttribute("usuario", usuario);
         model.addAttribute("esAdmin", "ADMIN".equals(usuario.getRol()));
+        model.addAttribute("totalClientes", clienteRepository.count());
+        model.addAttribute("totalHabitaciones", habitacionRepository.count());
+        model.addAttribute("habitacionesDisponibles", habitacionRepository.countByEstado("DISPONIBLE"));
+        model.addAttribute("reservasActivas", reservaRepository.countByEstadoAndFechaSalidaAfter("CONFIRMADA", LocalDate.now()));
 
         if (errorPermiso != null) {
             model.addAttribute("errorPermiso",
@@ -87,6 +116,6 @@ public class UsuarioController {
     @GetMapping("/logout")
     public String cerrarSesion(HttpSession session) {
         session.invalidate();
-        return "redirect:/";
+        return "redirect:/?salir";
     }
 }

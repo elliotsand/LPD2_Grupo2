@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Disponibilidad | Hotel Los Andes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container">
+        <span class="navbar-brand fw-bold">Hotel Los Andes</span>
+        <a th:href="@{/inicio}" class="btn btn-outline-light btn-sm">Volver al inicio</a>
+    </div>
+</nav>
+
+<main class="container py-5">
+    <h2 class="fw-bold">Consulta de disponibilidad</h2>
+    <p class="text-secondary">Habitaciones libres para un rango de fechas. Se excluyen las que están en
+        mantenimiento o tienen una reserva confirmada que se cruza con esas fechas.</p>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <form th:action="@{/consultas/disponibilidad}" method="get" class="card border-0 shadow-sm mb-4">
+        <div class="card-body row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="fechaEntrada">Entrada</label>
+                <input id="fechaEntrada" type="date" name="fechaEntrada" class="form-control" th:value="${fechaEntrada}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="fechaSalida">Salida</label>
+                <input id="fechaSalida" type="date" name="fechaSalida" class="form-control" th:value="${fechaSalida}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="idTipoHabitacion">Tipo de habitación</label>
+                <select id="idTipoHabitacion" name="idTipoHabitacion" class="form-select">
+                    <option value="">Todos</option>
+                    <option th:each="tipo : ${tipos}" th:value="${tipo.idTipoHabitacion}" th:text="${tipo.nombre}"
+                            th:selected="${tipo.idTipoHabitacion == idTipoHabitacion}"></option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100">Consultar</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="card border-0 shadow-sm" th:if="${disponibles != null}">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">
+                <span th:text="${#lists.size(disponibles)}"></span> habitación(es) disponible(s)
+                · <span th:text="${noches}"></span> noche(s)
+            </h5>
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-primary">
+                <tr><th>Habitación</th><th>Piso</th><th>Tipo</th><th class="text-end">Tarifa por noche (S/)</th>
+                    <th class="text-end">Importe estadía (S/)</th><th></th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="h : ${disponibles}">
+                    <td th:text="${h.numero}"></td>
+                    <td th:text="${h.piso}"></td>
+                    <td th:text="${h.tipoHabitacion.nombre}"></td>
+                    <td class="text-end" th:text="${#numbers.formatDecimal(h.tipoHabitacion.precio, 1, 'COMMA', 2, 'POINT')}"></td>
+                    <td class="text-end" th:text="${#numbers.formatDecimal(h.tipoHabitacion.precio * noches, 1, 'COMMA', 2, 'POINT')}"></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-success"
+                           th:href="@{/reservas(fechaEntrada=${fechaEntrada}, fechaSalida=${fechaSalida}, habitacionId=${h.idHabitacion})}">Reservar</a>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(disponibles)}">
+                    <td colspan="6" class="text-center text-secondary py-4">No hay habitaciones libres en esas fechas.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -12,19 +11,23 @@
 <nav class="navbar navbar-dark bg-primary">
     <div class="container">
         <span class="navbar-brand fw-bold">Hotel Los Andes</span>
-        <a th:href="@{/inicio}" class="btn btn-outline-light btn-sm">Volver al inicio</a>
+        <div class="d-flex gap-2">
+            <a th:href="@{/consultas/reservas}" class="btn btn-outline-light btn-sm">Consultar reservas</a>
+            <a th:href="@{/inicio}" class="btn btn-outline-light btn-sm">Volver al inicio</a>
+        </div>
     </div>
 </nav>
 
 <main class="container py-5">
     <h2 class="fw-bold">Reservas</h2>
-    <p class="text-secondary">Consulta disponibilidad y registra reservas.</p>
+    <p class="text-secondary">Elige las fechas, revisa las habitaciones libres y confirma la reserva.
+        Al confirmar, la habitación pasa a estado <strong>RESERVADA</strong> en la misma transacción.</p>
     <div th:if="${mensaje}" class="alert alert-success" th:text="${mensaje}"></div>
     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
     <section class="card border-0 shadow-sm mb-4">
         <div class="card-body p-4">
-            <h5 class="fw-bold">Consultar disponibilidad</h5>
+            <h5 class="fw-bold">1. Fechas de la estadía</h5>
             <form th:action="@{/reservas}" method="get" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="fechaEntrada" class="form-label">Fecha de entrada</label>
@@ -37,7 +40,7 @@
                            th:min="${fechaMinima}" th:value="${fechaSalida}" required>
                 </div>
                 <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary">Consultar</button>
+                    <button type="submit" class="btn btn-primary">Ver habitaciones disponibles</button>
                 </div>
             </form>
         </div>
@@ -45,7 +48,7 @@
 
     <section class="card border-0 shadow-sm mb-4" th:if="${habitacionesDisponibles != null}">
         <div class="card-body p-4">
-            <h5 class="fw-bold">Registrar reserva</h5>
+            <h5 class="fw-bold">2. Registrar reserva</h5>
             <p class="text-secondary" th:if="${#lists.isEmpty(habitacionesDisponibles)}">
                 No hay habitaciones disponibles en esas fechas.
             </p>
@@ -70,7 +73,8 @@
                         <option value="">Selecciona una habitación</option>
                         <option th:each="habitacion : ${habitacionesDisponibles}"
                                 th:value="${habitacion.idHabitacion}"
-                                th:text="${habitacion.numero + ' - ' + habitacion.tipoHabitacion.nombre}"></option>
+                                th:selected="${habitacion.idHabitacion == habitacionSeleccionada}"
+                                th:text="${habitacion.numero + ' - ' + habitacion.tipoHabitacion.nombre + ' - S/ ' + #numbers.formatDecimal(habitacion.tipoHabitacion.precio, 1, 2) + ' por noche'}"></option>
                     </select>
                 </div>
                 <div class="col-12">
@@ -88,8 +92,9 @@
                 <table class="table table-hover align-middle">
                     <thead class="table-primary">
                     <tr>
-                        <th>ID</th><th>Cliente</th><th>Habitación</th>
-                        <th>Entrada</th><th>Salida</th><th>Estado</th>
+                        <th>N°</th><th>Cliente</th><th>Habitación</th>
+                        <th>Entrada</th><th>Salida</th><th class="text-end">Noches</th>
+                        <th class="text-end">Importe (S/)</th><th>Estado</th><th></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -97,12 +102,29 @@
                         <td th:text="${reserva.idReserva}"></td>
                         <td th:text="${reserva.cliente.nombre}"></td>
                         <td th:text="${reserva.habitacion.numero}"></td>
-                        <td th:text="${reserva.fechaEntrada}"></td>
-                        <td th:text="${reserva.fechaSalida}"></td>
-                        <td><span class="badge bg-primary" th:text="${reserva.estado}"></span></td>
+                        <td th:text="${#temporals.format(reserva.fechaEntrada, 'dd/MM/yyyy')}"></td>
+                        <td th:text="${#temporals.format(reserva.fechaSalida, 'dd/MM/yyyy')}"></td>
+                        <td class="text-end" th:text="${reserva.noches}"></td>
+                        <td class="text-end" th:text="${#numbers.formatDecimal(reserva.total, 1, 'COMMA', 2, 'POINT')}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${reserva.estado == 'CONFIRMADA'} ? 'bg-primary' : (${reserva.estado == 'FINALIZADA'} ? 'bg-success' : 'bg-secondary')"
+                                  th:text="${reserva.estado}"></span>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <th:block th:if="${reserva.estado == 'CONFIRMADA'}">
+                                <form th:action="@{/reservas/{id}/finalizar(id=${reserva.idReserva})}" method="post" class="d-inline">
+                                    <button class="btn btn-sm btn-outline-success">Finalizar</button>
+                                </form>
+                                <form th:action="@{/reservas/{id}/cancelar(id=${reserva.idReserva})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('¿Cancelar esta reserva?');">
+                                    <button class="btn btn-sm btn-outline-danger">Cancelar</button>
+                                </form>
+                            </th:block>
+                        </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(reservas)}">
-                        <td colspan="6" class="text-center text-secondary py-4">Aún no hay reservas.</td>
+                        <td colspan="9" class="text-center text-secondary py-4">Aún no hay reservas.</td>
                     </tr>
                     </tbody>
                 </table>
